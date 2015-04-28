@@ -7,7 +7,7 @@ KISS automatic node deployment for VPS (minimalist PAAS), node project bootstrap
 
 ## Usage
 
-Download ndg on liveserver:
+Download & configure ndg on liveserver:
 
     $ ssh foo@liveserver.com 
     $ ndg config repositories_dir /srv/noderepos    # location of gitrepos
@@ -39,8 +39,13 @@ Yay! now we can remotely bootstrap node-projects:
 Start coding locally, commit and deploy:
 
     $ git clone foo@liveserver.com:/srv/noderepos/fooproject
+
     ...(code and commit)..
+
     $ git push origin master
+
+    ...(yay! your app is now being deployed on the liveserver)..
+
 
 Remote logging:
 
