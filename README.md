@@ -46,9 +46,17 @@ Yay! now we can remotely bootstrap node-projects:
 
     $ git push origin master
 
-    ...(yay! your app is now being deployed on the liveserver)..
+    ...(yay! app is deployed, npm packages installed/updated, infinite application-loop started..)
 
 Your repo will contain a '.ndg'-folder with extra deploymenthooks..for free!
+
+## Manage remotely
+
+    $ ssh foo@liveserver.com ndg status fooproject
+    app fooproject is running
+    $ ssh foo@liveserver.com ndg stop fooproject
+    $ ssh foo@liveserver.com ndg start fooproject
+    $ ssh foo@liveserver.com ndg restart fooproject
 
 ## Remote logging:
 
