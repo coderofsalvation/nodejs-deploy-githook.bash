@@ -1,7 +1,7 @@
 #!/bin/bash 
 
-repositories_dir="/tmp/repos"
-apps_dir="/tmp/apps"
+repositories_dir=""
+apps_dir=""
 port=""
 
 ## TEMPLATES #################################################################
@@ -71,8 +71,8 @@ check(){
   which npm &>/dev/null || { echo "please install npm+node"; exit 1;}
   [[ ${#repositories_dir} == 0 ]] && { need_config; exit; }
   [[ ${#apps_dir}     == 0 ]] && { need_config; exit; }
-  [[ ! -d "$repositories_dir" ]] && { echo "$repositories_dir does not exist"; exit 1; }
-  [[ ! -d "$apps_dir"     ]] && { echo "$apps_dir does not exist"; exit 1; }
+  [[ ! -d "$repositories_dir" ]] && { echo "$repositories_dir does not exist" && need_config; exit 1; }
+  [[ ! -d "$apps_dir"     ]] && { echo "$apps_dir does not exist" && need_config; exit 1; }
   return 0
 }
 
