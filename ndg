@@ -7,8 +7,8 @@
 # Website: https://github.com/coderofsalvation/nodejs-deploy-githook.bash
 # License: AGPL
 
-repositories_dir=""
-apps_dir=""
+repositories_dir="/srv/repos"
+apps_dir="/srv/apps"
 port=""
 
 ## TEMPLATES #################################################################
@@ -131,7 +131,8 @@ init(){
   init_repo "$apps_dir/$name"
   commit_repo
   echo -e "clone  repo:    git clone $(whoami)@$(cat /etc/hostname):$repositories_dir/$name"
-  echo -e "deploy repo:    git push origin master"
+  echo -e "logview app:    ssh $(whoami)@$(cat /etc/hostname) tailf $apps_dir/$name/nohup.out"
+  echo -e "deploy  app:    git push origin master"
 }
 
 init_repo(){
@@ -167,25 +168,32 @@ init_ndg_hooks(){
   chmod 755 $1/.ndg/hooks/* 
 }
 
-# app <start|stop|restart|status> <appid>
+# app <start|stop|restart|status|delete> <appid>
 app(){
   [[ ! -n "$2" ]] && { usage; exit 1; }
   [[ ! -d "$repositories_dir/$2" ]] && { echo "$repositories_dir/$2 does not exist"; exit 1; }
   [[ ! -d "$apps_dir/$2" ]]         && { echo "$apps_dir/$2 does not exist"; exit 1; }
+  set -e
   pid=$(cat "$apps_dir/$2/.pid" 2>/dev/null)
   echo "trying $1 for app $2.."
+  cd $apps_dir/$2
   case "$1" in
     status)     kill -0 "$pid" &>/dev/null && echo "app $2 is running (pid=$pid)" || echo "app $2 is not running"
                 ;;
-    stop)       cd $apps_dir/$2
-                .ndg/hooks/stop
+    stop)       .ndg/hooks/stop
                 ;;
     start)      kill -0 "$pid" &>/dev/null && { echo "app $2 is already running (pid=$pid)"; exit 0; }
+		echo starting
                 nohup .ndg/hooks/start 1>> nohup.out 2>&1 &
 		;;
-    restart)    cd $apps_dir/$2
-                .ndg/hooks/stop
+    restart)    .ndg/hooks/stop
                 nohup .ndg/hooks/start 1>> nohup.out 2>&1 &
+                ;;
+    delete)    .ndg/hooks/stop
+		echo "about to delete app in 5 seconds..press ctrl-c to abort"
+		echo "rm -rf $apps_dir/$2 $repositories_dir/$2"
+		sleep 5s
+		rm -rf $apps_dir/$2 $repositories_dir/$2
                 ;;
   esac
 }

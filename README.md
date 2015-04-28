@@ -57,6 +57,7 @@ Your repo will contain a '.ndg'-folder with extra deploymenthooks..for free!
     $ ssh foo@liveserver.com ndg stop fooproject
     $ ssh foo@liveserver.com ndg start fooproject
     $ ssh foo@liveserver.com ndg restart fooproject
+    $ ssh foo@liveserver.com ndg delete fooproject
 
 ## Remote logging:
 
