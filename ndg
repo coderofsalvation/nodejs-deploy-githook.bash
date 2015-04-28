@@ -7,8 +7,8 @@
 # Website: https://github.com/coderofsalvation/nodejs-deploy-githook.bash
 # License: AGPL
 
-repositories_dir="/srv/repos"
-apps_dir="/srv/apps"
+repositories_dir=""
+apps_dir=""
 port=""
 
 ## TEMPLATES #################################################################
@@ -178,7 +178,7 @@ app(){
   echo "trying $1 for app $2.."
   cd $apps_dir/$2
   case "$1" in
-    status)     kill -0 "$pid" &>/dev/null && echo "app $2 is running (pid=$pid)" || echo "app $2 is not running"
+    status)     kill -0 "$pid" &>/dev/null && { echo "app $2 is running (pid=$pid)"; exit 0;} || { echo "app $2 is not running"; exit 1;}
                 ;;
     stop)       .ndg/hooks/stop
                 ;;

@@ -36,7 +36,8 @@ Yay! now we can remotely bootstrap node-projects:
     ndg> create mode 100644 package.json
     ndg> --- pushing to origin
     ndg> get    repo:    git clone foo@liveserver.com:/srv/noderepos/fooproject    
-    ndg> deploy repo:    git push origin master
+    ndg> logview app:    ssh foo@liveserver.com tailf /srv/noderepos/fooproject/nohup.out
+    ndg> deploy  app:    git push origin master
 
 ## Code locally, deploy to remote
 
@@ -69,3 +70,15 @@ Your repo will contain a '.ndg'-folder with extra deploymenthooks..for free!
     trigger .ndg/hooks/test
     Tue Apr 28 08:53:58 CEST 2015 starting /srv/nodeapps/fooproject at port 8111
 
+## App start during server reboot
+
+Just put this somewhere in an /etc/init.d/ script:
+
+    ndg app status projectfoo || ndg app start projectfoo
+
+All apps at once:
+
+    for app in /srv/nodeapps/*; do 
+      appname=$(basename $app)
+      ndg app status $appname || ndg app start $appname
+    done
