@@ -73,6 +73,7 @@ check(){
   [[ ${#apps_dir}     == 0 ]] && { need_config; exit; }
   [[ ! -d "$repositories_dir" ]] && { echo "$repositories_dir does not exist" && need_config; exit 1; }
   [[ ! -d "$apps_dir"     ]] && { echo "$apps_dir does not exist" && need_config; exit 1; }
+  [[ ! -n $1 ]] && usage
   return 0
 }
 
@@ -97,9 +98,13 @@ config(){
   esac 
 }
 
+usage(){
+  grep -B1 "(){" $0 | grep "^#" | while read line; do echo "usage: ndg ${line//# /}"; done; exit; 
+}
+
 # init <id> <port> 
 init(){
-  [[ ! -n $2 ]] && { grep -B1 "(){" $0 | grep "^#" | while read line; do echo "usage: ndg ${line//# /}"; done; exit; }
+  [[ ! -n $2 ]] && { usage; exit; }
   set -u; name="$1"; port="$2"; hookfile=$name/hooks/post-receive 
   echo "$repositories_dir"
   cd "$repositories_dir" && git init --bare "$name"
@@ -152,4 +157,4 @@ need_config(){
 }
 
 [[ "$1" == "config" ]] && "$@" && exit
-check && "$@" 2>1 | while IFS='' read line; do echo "ngd> $line"; done
+check "$@" && "$@" 2>1 | while IFS='' read line; do echo "ngd> $line"; done
