@@ -67,19 +67,25 @@ done
 hook_start='
   trap "echo application was killed >> nohup.out ; exit 1" 1 2 3 4 5 SIGINT SIGTERM
   echo $$ > .pid
-  while sleep 2s; do echo "$(date) starting $(pwd) at port %s" >> nohup.out; PORT=%s node server.js; done
+
+  forever(){
+    echo "$(date) starting $(pwd) at port %s" >> nohup.out
+    PORT=%s node server.js
+    sleep 2s && forever
+  }
+
+  forever
 '
 
 hook_stop='
 [[ ! -f .pid ]] && { echo "no pidfile found, nothing to stop" >> nohup.out; exit 0; }
-pid=$(<.pid)
-echo "$(date) stopping $(pwd) (pid $pid)" >> nohup.out
-[[ ${#pid} > 0 ]] && kill -9 $pid 
+pid=$(<.pid);echo "$(date) stopping $(pwd) (pid $pid)" >> nohup.out
+[[ ${#pid} > 0 ]] &&  kill $(pstree $pid -p -a -l | cut -d, -f2 | cut -d" " -f1) 
 exit 0 # else git deployment will halt
 '
 
 check(){
-  which npm &>/dev/null || { echo "please install npm+node"; exit 1;}
+  for app in pstree ps sed awk npm node; do which $app &>/dev/null || { echo "please install $app"; exit 1; }; done
   [[ ${#repositories_dir} == 0 ]] && { need_config; exit; }
   [[ ${#apps_dir}     == 0 ]] && { need_config; exit; }
   [[ ! -d "$repositories_dir" ]] && { echo "$repositories_dir does not exist" && need_config; exit 1; }
