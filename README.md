@@ -38,7 +38,7 @@ Yay! now we can remotely bootstrap node-projects:
     ndg> get    repo:    git clone foo@liveserver.com:/srv/noderepos/fooproject    
     ndg> deploy repo:    git push origin master
 
-Start coding locally, commit and deploy:
+## Code locally, deploy to remote
 
     $ git clone foo@liveserver.com:/srv/noderepos/fooproject
 
@@ -48,8 +48,9 @@ Start coding locally, commit and deploy:
 
     ...(yay! your app is now being deployed on the liveserver)..
 
+Your repo will contain a '.ndg'-folder with extra deploymenthooks..for free!
 
-Remote logging:
+## Remote logging:
 
     $ ssh foo@liveserver.com tailf /srv/noderepos/fooproject/nohup.out
     trigger .ndg/hooks/stop
