@@ -7,8 +7,8 @@
 # Website: https://github.com/coderofsalvation/nodejs-deploy-githook.bash
 # License: AGPL
 
-repositories_dir=""
-apps_dir=""
+repositories_dir="/srv/repos"
+apps_dir="/srv/apps"
 port=""
 
 ## TEMPLATES #################################################################
@@ -123,16 +123,17 @@ usage(){
 init(){
   [[ ! -n $2 ]] && { usage; exit; }
   set -u; name="$1"; port="$2"; hookfile=$name/hooks/post-receive 
-  echo "$repositories_dir"
-  cd "$repositories_dir" && git init --bare "$name"
-  print_header > "$hookfile"
-  echo "$githook_post_receive" >> "$hookfile"
-  chmod 755 "$hookfile"
-  init_repo "$apps_dir/$name"
-  commit_repo
-  echo -e "clone  repo:    git clone $(whoami)@$(cat /etc/hostname):$repositories_dir/$name"
-  echo -e "logview app:    ssh $(whoami)@$(cat /etc/hostname) tailf $apps_dir/$name/nohup.out"
-  echo -e "deploy  app:    git push origin master"
+  {
+    cd "$repositories_dir" && git init --bare "$name"
+    print_header > "$hookfile"
+    echo "$githook_post_receive" >> "$hookfile"
+    chmod 755 "$hookfile"
+    init_repo "$apps_dir/$name"
+    commit_repo
+    echo -e "clone  repo:    git clone $(whoami)@$(cat /etc/hostname):$repositories_dir/$name"
+    echo -e "logview app:    ssh $(whoami)@$(cat /etc/hostname) tailf $apps_dir/$name/nohup.out"
+    echo -e "deploy  app:    git push origin master"
+  } | console
 }
 
 init_repo(){
@@ -174,14 +175,15 @@ app(){
   [[ ! -d "$repositories_dir/$2" ]] && { echo "$repositories_dir/$2 does not exist"; exit 1; }
   [[ ! -d "$apps_dir/$2" ]]         && { echo "$apps_dir/$2 does not exist"; exit 1; }
   pid=$(cat "$apps_dir/$2/.pid" 2>/dev/null)
+  ok=0
   cd $apps_dir/$2
   case "$1" in
     list)       ls 
                 ;;
 
-    status)     kill -0 "$pid" &>/dev/null 
-		running=$?; [[ $running == 1 ]] && not="not" || not=""
-               echo "app $2 is $not running (pid=$pid)"; exit $running
+    status)     kill -0 "$pid"; ok=$? 
+		[[ $ok == 1 ]] && not="not" || not=""
+                echo "app $2 is $not running (pid=$pid)"; 
                 ;;
     stop)       .ndg/hooks/stop
                 ;;
@@ -201,6 +203,7 @@ app(){
     *)          echo "unknown action '$1'"
                 ;;
   esac
+  exit $ok 
 }
 
 need_config(){
@@ -209,5 +212,9 @@ need_config(){
   echo "            $(basename $0) config apps_dir     <appdir>";
 }
 
+console(){
+  cat - | while IFS='' read line; do echo "ngd> $line"; done
+}
+
 [[ "$1" == "config" ]] && "$@" && exit
-check "$@" && "$@" 2>1 | while IFS='' read line; do echo "ngd> $line"; done
+check "$@" && "$@" 2>1 
