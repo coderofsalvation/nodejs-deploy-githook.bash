@@ -1,6 +1,8 @@
 node-deploy-githook.bash
 ========================
 
+<img alt="" src="ndg.png"/>
+
 KISS automatic node deployment for VPS (minimalist PAAS), node project bootstrapper in few lines of bash.
 
 > Zero dependencies: only bash git and ssh!
