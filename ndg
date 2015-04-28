@@ -1,0 +1,155 @@
+#!/bin/bash 
+
+repositories_dir="/tmp/repos"
+apps_dir="/tmp/apps"
+port=""
+
+## TEMPLATES #################################################################
+
+package_json='{
+  "name": "%s",
+  "version": "0.0.1",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo js-testfile goes here in package.json; exit 0"
+  },
+  "author": "",
+  "license": "GPL3"
+}'
+
+githook_post_receive='
+# this is the githook template, please modify at will
+while read oldrev newrev ref
+do
+  branch=$(echo $ref | cut -d/ -f3)
+  trap "echo deployment aborted :( ; exit 1" 1 2 3 4 5 SIGINT SIGTERM
+  trigger_hook(){ 
+    [[ -f $1 ]] && { echo "trigger $1" | tee -a nohup.out && $1; }
+  }
+
+  if [[ "master" == "$branch" ]]; then
+
+    cd "$projectdir"
+    
+    trigger_hook .ndg/hooks/stop
+    
+    trigger_hook .ndg/hooks/build
+
+    npm install 
+
+    trigger_hook .ndg/hooks/patch
+
+    npm test
+    
+    trigger_hook .ndg/hooks/test
+
+    nohup .ndg/hooks/start 1>> nohup.out 2>&1 & 
+
+  else 
+    echo "no actions for branch $branch"
+  fi
+
+done
+'
+
+hook_start='
+  trap "echo application was killed >> nohup.out ; exit 1" 1 2 3 4 5 SIGINT SIGTERM
+  echo $$ > .pid
+  while sleep 2s; do echo "$(date) starting $(pwd) at port %s" >> nohup.out; PORT=%s node server.js; done
+'
+
+hook_stop='
+[[ ! -f .pid ]] && { echo "no pidfile found, nothing to stop" >> nohup.out; exit 0; }
+pid=$(<.pid)
+echo "$(date) stopping $(pwd) (pid $pid)" >> nohup.out
+[[ ${#pid} > 0 ]] && kill -9 $pid 
+exit 0 # else git deployment will halt
+'
+
+check(){
+  which npm &>/dev/null || { echo "please install npm+node"; exit 1;}
+  [[ ${#repositories_dir} == 0 ]] && { need_config; exit; }
+  [[ ${#apps_dir}     == 0 ]] && { need_config; exit; }
+  [[ ! -d "$repositories_dir" ]] && { echo "$repositories_dir does not exist"; exit 1; }
+  [[ ! -d "$apps_dir"     ]] && { echo "$apps_dir does not exist"; exit 1; }
+  return 0
+}
+
+print_header(){
+  echo "#!/bin/bash"
+  echo "set -e # halt on 1st error"
+  echo "projectdir='$apps_dir/$name'"
+}
+
+# config <apps_dir|repositories_dir> <directory>
+config(){
+  cp $0 /tmp/.
+  case "$1" in 
+    apps_dir)     sed -i 's|^apps_dir=.*|apps_dir="'$2'"|g' $0
+                  echo "updated $1 -> $2"
+                  ;;
+    repositories_dir) sed -i 's|^repositories_dir=.*|repositories_dir="'$2'"|g' $0
+                  echo "updated $1 -> $2"
+                  ;;
+    default)      echo "config variable not found"
+                  ;;
+  esac 
+}
+
+# init <id> <port> 
+init(){
+  [[ ! -n $2 ]] && { grep -B1 "(){" $0 | grep "^#" | while read line; do echo "usage: ndg ${line//# /}"; done; exit; }
+  set -u; name="$1"; port="$2"; hookfile=$name/hooks/post-receive 
+  echo "$repositories_dir"
+  cd "$repositories_dir" && git init --bare "$name"
+  print_header > "$hookfile"
+  echo "$githook_post_receive" >> "$hookfile"
+  chmod 755 "$hookfile"
+  init_repo "$apps_dir/$name"
+  commit_repo
+  echo -e "clone  repo:    git clone $(whoami)@$(cat /etc/hostname):$repositories_dir/$name"
+  echo -e "deploy repo:    git push origin master"
+}
+
+init_repo(){
+  echo "--- initing repo"
+  set -u; name=$(basename $1); line=""; for((i=0;i<${#name};i++)); do line="$line""="; done
+  git clone "$repositories_dir/$name" "$apps_dir/$name"
+  cd "$apps_dir/$name" 
+  echo -e "$name\n$line\n\ndescription here" > $1/README.md
+  touch $1/LICENSE
+  init_ndg_hooks "$1"
+  printf "$package_json" "$name" > package.json
+  echo "var port = process.env.PORT;" > server.js
+  echo "node_modules" > .gitignore
+}
+
+
+commit_repo(){
+   echo "--- committing README.md, LICENSE and ndg hooks"
+   git add . 
+   git commit -m "1st commit"
+   echo "--- pushing to origin"
+   git push origin master
+}
+
+init_ndg_hooks(){
+  echo "--- initing .ndg/hooks/"
+  [[ ! -d $1/.ndg/hooks ]] && mkdir -p $1/.ndg/hooks 
+  for file in build patch test start stop; do 
+    echo -e "#!/bin/bash\n# this hook gets executed during $file-stage of deployment" > $1/.ndg/hooks/$file; 
+  done 
+  printf "$hook_start" "$port" "$port" >> $1/.ndg/hooks/start
+  printf "$hook_stop"  "$port"   >> $1/.ndg/hooks/stop
+  chmod 755 $1/.ndg/hooks/* 
+}
+
+need_config(){
+  echo -e "we need to know where to store your repositories_dir and where your applications should run\n"
+  echo "please run: $(basename $0) config repositories_dir <repositorydir>"; 
+  echo "            $(basename $0) config apps_dir     <appdir>";
+}
+
+[[ "$1" == "config" ]] && "$@" && exit
+check && "$@" 2>1 | while IFS='' read line; do echo "ngd> $line"; done
