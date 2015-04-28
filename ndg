@@ -168,17 +168,20 @@ init_ndg_hooks(){
   chmod 755 $1/.ndg/hooks/* 
 }
 
-# app <start|stop|restart|status|delete> <appid>
+# app <list|start|stop|restart|status|delete> <appid>
 app(){
-  [[ ! -n "$2" ]] && { usage; exit 1; }
+  [[ ! -n "$2" ]] && [[ ! "$1" == "list" ]] && { usage; exit 0; }
   [[ ! -d "$repositories_dir/$2" ]] && { echo "$repositories_dir/$2 does not exist"; exit 1; }
   [[ ! -d "$apps_dir/$2" ]]         && { echo "$apps_dir/$2 does not exist"; exit 1; }
-  set -e
   pid=$(cat "$apps_dir/$2/.pid" 2>/dev/null)
-  echo "trying $1 for app $2.."
   cd $apps_dir/$2
   case "$1" in
-    status)     kill -0 "$pid" &>/dev/null && { echo "app $2 is running (pid=$pid)"; exit 0;} || { echo "app $2 is not running"; exit 1;}
+    list)       ls 
+                ;;
+
+    status)     kill -0 "$pid" &>/dev/null 
+		running=$?; [[ $running == 1 ]] && not="not" || not=""
+               echo "app $2 is $not running (pid=$pid)"; exit $running
                 ;;
     stop)       .ndg/hooks/stop
                 ;;
@@ -189,11 +192,13 @@ app(){
     restart)    .ndg/hooks/stop
                 nohup .ndg/hooks/start 1>> nohup.out 2>&1 &
                 ;;
-    delete)    .ndg/hooks/stop
+    delete)     .ndg/hooks/stop
 		echo "about to delete app in 5 seconds..press ctrl-c to abort"
 		echo "rm -rf $apps_dir/$2 $repositories_dir/$2"
 		sleep 5s
 		rm -rf $apps_dir/$2 $repositories_dir/$2
+                ;;
+    *)          echo "unknown action '$1'"
                 ;;
   esac
 }

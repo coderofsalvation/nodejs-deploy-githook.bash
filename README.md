@@ -55,10 +55,12 @@ Your repo will contain a '.ndg'-folder with extra deploymenthooks..for free!
 
     $ ssh foo@liveserver.com ndg status fooproject
     app fooproject is running
-    $ ssh foo@liveserver.com ndg stop fooproject
-    $ ssh foo@liveserver.com ndg start fooproject
-    $ ssh foo@liveserver.com ndg restart fooproject
-    $ ssh foo@liveserver.com ndg delete fooproject
+    $ ssh foo@liveserver.com ndg app list
+    ndg> fooproject
+    $ ssh foo@liveserver.com ndg app stop fooproject
+    $ ssh foo@liveserver.com ndg app start fooproject
+    $ ssh foo@liveserver.com ndg app restart fooproject
+    $ ssh foo@liveserver.com ndg app delete fooproject
 
 ## Remote logging:
 
