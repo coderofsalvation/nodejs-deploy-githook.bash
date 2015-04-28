@@ -1,4 +1,11 @@
 #!/bin/bash 
+#
+# KISS automatic node deployment for VPS (minimalist PAAS) node project bootstrapper 
+# in few lines of bash using only git & ssh
+#
+# Author: Leon van Kammen / Coder of Salvation
+# Website: https://github.com/coderofsalvation/nodejs-deploy-githook.bash
+# License: AGPL
 
 repositories_dir=""
 apps_dir=""
@@ -22,6 +29,7 @@ githook_post_receive='
 # this is the githook template, please modify at will
 while read oldrev newrev ref
 do
+  unset GIT_DIR
   branch=$(echo $ref | cut -d/ -f3)
   trap "echo deployment aborted :( ; exit 1" 1 2 3 4 5 SIGINT SIGTERM
   trigger_hook(){ 
@@ -30,9 +38,12 @@ do
 
   if [[ "master" == "$branch" ]]; then
 
-    cd "$projectdir"
+    cd "$projectdir" || { echo "$projectdir doesnt exist :("; exit 1; }
     
     trigger_hook .ndg/hooks/stop
+
+    git reset --hard	    
+    git pull origin master
     
     trigger_hook .ndg/hooks/build
 
@@ -87,10 +98,10 @@ print_header(){
 config(){
   cp $0 /tmp/.
   case "$1" in 
-    apps_dir)     sed -i 's|^apps_dir=.*|apps_dir="'$2'"|g' $0
+    apps_dir)     sed -i 's|^apps_dir=.*|apps_dir="'$2'"|g' $(readlink -f $0)
                   echo "updated $1 -> $2"
                   ;;
-    repositories_dir) sed -i 's|^repositories_dir=.*|repositories_dir="'$2'"|g' $0
+    repositories_dir) sed -i 's|^repositories_dir=.*|repositories_dir="'$2'"|g' $(readlink -f $0)
                   echo "updated $1 -> $2"
                   ;;
     default)      echo "config variable not found"
