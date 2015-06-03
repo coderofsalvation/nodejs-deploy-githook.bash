@@ -169,7 +169,7 @@ init_ndg_hooks(){
   chmod 755 $1/.ndg/hooks/* 
 }
 
-# app <list|start|stop|restart|status|delete> <appid>
+# app <list|start|stop|restart|status|logtail|delete> <appid>
 app(){
   [[ ! -n "$2" ]] && [[ ! "$1" == "list" ]] && { usage; exit 0; }
   [[ ! -d "$repositories_dir/$2" ]] && { echo "$repositories_dir/$2 does not exist"; exit 1; }
@@ -199,6 +199,9 @@ app(){
 		echo "rm -rf $apps_dir/$2 $repositories_dir/$2"
 		sleep 5s
 		rm -rf $apps_dir/$2 $repositories_dir/$2
+                ;;
+    logtail)    echo "tailing $apps_dir/$2/nohup.out"
+		tailf $apps_dir/$2/nohup.out
                 ;;
     *)          echo "unknown action '$1'"
                 ;;

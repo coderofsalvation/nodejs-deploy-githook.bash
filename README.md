@@ -66,7 +66,7 @@ Your repo will contain a '.ndg'-folder with extra deploymenthooks..for free!
 
 ## Remote logging:
 
-    $ ssh foo@liveserver.com tailf /srv/noderepos/fooproject/nohup.out
+    $ ssh foo@liveserver.com ndg app logtail fooproject 
     trigger .ndg/hooks/stop
     Tue Apr 28 08:53:55 CEST 2015 stopping /srv/nodeapps/fooproject (pid 27474)
     trigger .ndg/hooks/build
