@@ -63,8 +63,10 @@ do
 
 done
 '
+app_config='# this config will be used by ndg and the nodejs application (as env variables)
+PROTOCOL=http://
 
-app_config='if [[ -n $LIVE ]]; then 
+if [[ -n $LIVE ]]; then 
 	URL=%s
 	HOST=127.0.0.1
 	PORT=%s
