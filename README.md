@@ -106,4 +106,6 @@ ndg-proxy is a websocket/http proxy node application which allows running multip
 
 ndg-proxy reads the .ndg/config files from projects during start..easy peasy.
 
-* Applications: run containers in 1 container :)
+> ndg + ndg-proxy: run containers in 1 container :)
+
+* more info on ndg-proxy: [https://github.com/coderofsalvation/ndg-proxy](https://github.com/coderofsalvation/ndg-proxy)
