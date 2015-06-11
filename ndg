@@ -6,9 +6,9 @@
 # Author: Leon van Kammen / Coder of Salvation
 # Website: https://github.com/coderofsalvation/nodejs-deploy-githook.bash
 # License: AGPL
-
-repositories_dir="/srv/repos"
-apps_dir="/srv/apps"
+self_path="$(dirname "$( readlink -f "$0" )" )"
+repositories_dir="/var/lib/openshift/55792d7be0b8cd10ec0002b4/app-root/data/repos"
+apps_dir="/var/lib/openshift/55792d7be0b8cd10ec0002b4/app-root/data/apps"
 port=""
 
 ## TEMPLATES #################################################################
@@ -55,7 +55,7 @@ do
     
     trigger_hook .ndg/hooks/test
 
-    nohup .ndg/hooks/start 1>> nohup.out 2>&1 & 
+    nohup .ndg/hooks/start >> nohup.out 2>&1 & 
 
   else 
     echo "no actions for branch $branch"
@@ -64,13 +64,26 @@ do
 done
 '
 
+app_config='if [[ -n $LIVE ]]; then 
+	URL=%s
+	HOST=127.0.0.1
+	PORT=%s
+else 
+	URL=%s
+	HOST=127.0.0.1
+	PORT=%s
+fi
+'
+
 hook_start='
   trap "echo application was killed | tee -a nohup.out ; exit 1" 1 2 3 4 5 SIGINT SIGTERM
   echo $$ > .pid
 
+  . .ndg/config                                       # read config (port/iface etc)
+
   forever(){
     echo "$(date) starting $(pwd) at port %s" | tee -a nohup.out
-    PORT=%s node server.js
+    PORT=$PORT HOST=$LISTEN node server.js
     sleep 2s && forever
   }
 
@@ -119,10 +132,10 @@ usage(){
   grep -B1 "(){" $0 | grep "^#" | while read line; do echo "usage: ndg ${line//# /}"; done; exit; 
 }
 
-# init <id> <port> 
+# init <id> <port> <http://domain.com>
 init(){
   [[ ! -n $2 ]] && { usage; exit; }
-  set -u; name="$1"; port="$2"; hookfile=$name/hooks/post-receive 
+  set -u; name="$1"; port="$2"; domainurl="$3"; hookfile=$name/hooks/post-receive 
   {
     cd "$repositories_dir" && git init --bare "$name"
     print_header > "$hookfile"
@@ -130,8 +143,12 @@ init(){
     chmod 755 "$hookfile"
     init_repo "$apps_dir/$name"
     commit_repo
-    echo -e "clone  repo:    git clone $(whoami)@$(cat /etc/hostname):$repositories_dir/$name"
-    echo -e "logview app:    ssh $(whoami)@$(cat /etc/hostname) tailf $apps_dir/$name/nohup.out"
+    [[ -f $self_path/.hostname ]] && hostname="$(< $self_path/.hostname)" || {
+      hostname="??????"
+      echo "warning: please set hostname in file $self_path/.hostname";
+    }
+    echo -e "clone  repo:    git clone $(whoami)@$hostname:$repositories_dir/$name"
+    echo -e "logview app:    ssh $(whoami)@$hostname tailf $apps_dir/$name/nohup.out"
     echo -e "deploy  app:    git push origin master"
   } | console
 }
@@ -164,15 +181,15 @@ init_ndg_hooks(){
   for file in build patch test start stop; do 
     echo -e "#!/bin/bash\n# this hook gets executed during $file-stage of deployment" > $1/.ndg/hooks/$file; 
   done 
-  printf "$hook_start" "$port" "$port" >> $1/.ndg/hooks/start
-  printf "$hook_stop"  "$port"   >> $1/.ndg/hooks/stop
+  printf "$app_config" "$domainurl" "$port" "$domainurl" "$port" > $1/.ndg/config
+  printf "$hook_start" "$port" "$port" > $1/.ndg/hooks/start
+  printf "$hook_stop"  "$port"   > $1/.ndg/hooks/stop
   chmod 755 $1/.ndg/hooks/* 
 }
 
-# app <list|start|stop|restart|status|logtail|delete> <appid>
+# app <list|start|stop|symlink|restart|status|logtail|delete> <appid>
 app(){
   [[ ! -n "$2" ]] && [[ ! "$1" == "list" ]] && { usage; exit 0; }
-  [[ ! -d "$repositories_dir/$2" ]] && { echo "$repositories_dir/$2 does not exist"; exit 1; }
   [[ ! -d "$apps_dir/$2" ]]         && { echo "$apps_dir/$2 does not exist"; exit 1; }
   pid=$(cat "$apps_dir/$2/.pid" 2>/dev/null)
   ok=0
@@ -198,7 +215,24 @@ app(){
 		echo "about to delete app in 5 seconds..press ctrl-c to abort"
 		echo "rm -rf $apps_dir/$2 $repositories_dir/$2"
 		sleep 5s
-		rm -rf $apps_dir/$2 $repositories_dir/$2
+		rm -rf $apps_dir/$2
+                [[ -d $repositories_dir/$2 ]] && rm $repositories_dir/$2
+                ;;
+    symlink)    [[ ! -n $5 ]] && { echo "usage: ndg app symlink <appname> <appname-2> <port> <http://domainurl>"; exit 0; }
+		mkdir $apps_dir/$3
+                cd $apps_dir/$3 
+                find $apps_dir/$2 -maxdepth 1 | while read file; do ln -s "$file" .; done 
+                rm -rf .pid nohup.out .ndg
+                cp -R $apps_dir/$2/.ndg .
+                cd .ndg
+                . config 
+                file="$(<config)"
+		rm config
+                echo "$file" > config 
+                sed -i 's/PORT=.*/PORT='$4'/g' config
+                sed -i 's|URL=.*|URL='$5'|g' config
+		echo "done, here's the config: "
+		cat config
                 ;;
     logtail)    echo "tailing $apps_dir/$2/nohup.out"
 		tailf $apps_dir/$2/nohup.out
@@ -220,4 +254,4 @@ console(){
 }
 
 [[ "$1" == "config" ]] && "$@" && exit
-check "$@" && "$@" 2>1 
+check "$@" && "$@" 2>&1 

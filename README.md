@@ -11,15 +11,16 @@ ndg means KISS automatic node deployment for VPS (minimalist PAAS), node project
 
 ## Usage
 
-Download & configure ndg on liveserver:
+On the liveserver download & configure ndg on liveserver (once):
 
     $ ssh foo@liveserver.com 
     $ ndg config repositories_dir /srv/noderepos    # location of gitrepos
     $ ndg config apps_dir /srv/nodeapps             # where apps run
 
-Yay! now we can remotely bootstrap node-projects:
+Locally: Yay! now we can bootstrap node-projects remotly:
 
-    $ ssh foo@liveserver.com ndg init fooproject 8111
+    $ alias ndg='ssh foo@liveserver.com ndg "$@"'
+    $ ndg init fooproject 8111 http://foo.liveserver.com
 
     ndg> Initialized empty Git repository in /srv/noderepos/fooproject
     ndg> --- initing repo
@@ -55,18 +56,26 @@ Your repo will contain a '.ndg'-folder with extra deploymenthooks..for free!
 
 ## Manage remotely
 
-    $ ssh foo@liveserver.com ndg status fooproject
+    $ alias ndg='ssh foo@liveserver.com ndg "$@"'
+    $ ndg status fooproject
     app fooproject is running
-    $ ssh foo@liveserver.com ndg app list
+    $ ndg app list
     ndg> fooproject
-    $ ssh foo@liveserver.com ndg app stop fooproject
-    $ ssh foo@liveserver.com ndg app start fooproject
-    $ ssh foo@liveserver.com ndg app restart fooproject
-    $ ssh foo@liveserver.com ndg app delete fooproject
+    $ ndg app stop fooproject
+    $ ndg app start fooproject
+    $ ndg app restart fooproject
+    $ ndg app delete fooproject
+
+## Scalable instances
+
+Experimentl: Scaling can be achieved using symlinks 
+
+    $ ndg app symlink fooproject fooproject-2 2345 http://fooproject-2.liveserver.com
+    $ ndg app start fooproject-2
 
 ## Remote logging:
 
-    $ ssh foo@liveserver.com ndg app logtail fooproject 
+    $ ndg app logtail fooproject 
     trigger .ndg/hooks/stop
     Tue Apr 28 08:53:55 CEST 2015 stopping /srv/nodeapps/fooproject (pid 27474)
     trigger .ndg/hooks/build
@@ -86,3 +95,15 @@ All apps at once:
       appname=$(basename $app)
       ndg app status $appname || ndg app start $appname
     done
+
+## Optional: ndg-proxy 
+
+ndg-proxy is a websocket/http proxy node application which allows running multiple node applications thru one port.
+
+    ndg app #1 @ port 1234 <---->
+    ndg app #2 @ port 1235 <---->  ndg-proxy @ port 80  <----- traffic
+    ndg app #3 @ port 1236 <---->
+
+ndg-proxy reads the .ndg/config files from projects during start..easy peasy.
+
+* Applications: run containers in 1 container :)
