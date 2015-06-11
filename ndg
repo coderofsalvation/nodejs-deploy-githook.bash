@@ -82,7 +82,7 @@ hook_start='
   . .ndg/config                                       # read config (port/iface etc)
 
   forever(){
-    echo "$(date) starting $(pwd) at port %s" | tee -a nohup.out
+    echo "$(date) starting $(pwd) at port $PORT" | tee -a nohup.out
     PORT=$PORT HOST=$LISTEN node server.js
     sleep 2s && forever
   }
@@ -182,7 +182,7 @@ init_ndg_hooks(){
     echo -e "#!/bin/bash\n# this hook gets executed during $file-stage of deployment" > $1/.ndg/hooks/$file; 
   done 
   printf "$app_config" "$domainurl" "$port" "$domainurl" "$port" > $1/.ndg/config
-  printf "$hook_start" "$port" "$port" > $1/.ndg/hooks/start
+  echo   "$hook_start" > $1/.ndg/hooks/start
   printf "$hook_stop"  "$port"   > $1/.ndg/hooks/stop
   chmod 755 $1/.ndg/hooks/* 
 }
