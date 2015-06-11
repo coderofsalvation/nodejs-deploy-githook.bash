@@ -21,9 +21,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 self_path="$(dirname "$( readlink -f "$0" )" )"
-repositories_dir="/var/lib/openshift/55792d7be0b8cd10ec0002b4/app-root/data/repos"
-apps_dir="/var/lib/openshift/55792d7be0b8cd10ec0002b4/app-root/data/apps"
+repositories_dir=""
+apps_dir=""
 port=""
+
+dir_ok(){ [[ -d "$1" || -L "$1" ]] && return 0 || return 1; }
 
 ## TEMPLATES #################################################################
 
@@ -117,8 +119,8 @@ check(){
   for app in pstree ps sed awk npm node; do which $app &>/dev/null || { echo "please install $app"; exit 1; }; done
   [[ ${#repositories_dir} == 0 ]] && { need_config; exit; }
   [[ ${#apps_dir}     == 0 ]] && { need_config; exit; }
-  [[ ! -d "$repositories_dir" ]] && { echo "$repositories_dir does not exist" && need_config; exit 1; }
-  [[ ! -d "$apps_dir"     ]] && { echo "$apps_dir does not exist" && need_config; exit 1; }
+  dir_ok "$repositories_dir" || { echo "$repositories_dir does not exist" && need_config; exit 1; }
+  dir_ok "$apps_dir" ]] || { echo "$apps_dir does not exist" && need_config; exit 1; }
   [[ ! -n $1 ]] && usage
   return 0
 }
@@ -206,7 +208,7 @@ init_ndg_hooks(){
 # app <list|start|stop|symlink|restart|status|logtail|delete> <appid>
 app(){
   [[ ! -n "$2" ]] && [[ ! "$1" == "list" ]] && { usage; exit 0; }
-  [[ ! -d "$apps_dir/$2" ]]         && { echo "$apps_dir/$2 does not exist"; exit 1; }
+  dir_ok "$apps_dir/$2"         || { echo "$apps_dir/$2 does not exist"; exit 1; }
   pid=$(cat "$apps_dir/$2/.pid" 2>/dev/null)
   ok=0
   cd $apps_dir/$2
