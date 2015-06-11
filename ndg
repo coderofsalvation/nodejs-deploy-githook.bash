@@ -83,7 +83,7 @@ hook_start='
 
   forever(){
     echo "$(date) starting $(pwd) at port $PORT" | tee -a nohup.out
-    PORT=$PORT HOST=$LISTEN node server.js
+    PORT=$PORT HOST=$HOST node server.js
     sleep 2s && forever
   }
 
