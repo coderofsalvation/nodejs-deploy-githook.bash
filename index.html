@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/print.css" media="print">
+
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <title>NDG (Nodejs-deploy-githook.bash) by coderofsalvation</title>
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <h1>NDG (Nodejs-deploy-githook.bash)</h1>
+        <h2>KISS automatic node deployment for VPS  (minimalist PAAS) node container bootstrapper in few lines of bash using only git &amp; ssh</h2>
+        <a href="https://github.com/coderofsalvation/nodejs-deploy-githook.bash" class="button"><small>View project on</small> GitHub</a>
+      </div>
+    </header>
+
+    <div id="content-wrapper">
+      <div class="inner clearfix">
+        <section id="main-content">
+          <h1>
+<a id="ndg-node-deploy-githookbash" class="anchor" href="#ndg-node-deploy-githookbash" aria-hidden="true"><span class="octicon octicon-link"></span></a>NDG (node-deploy-githook.bash)</h1>
+
+<p><img alt="" src="https://github.com/coderofsalvation/nodejs-deploy-githook.bash/raw/master/ndg.png"></p>
+
+<p>Want hasslefree deployment of multiple nodejs applications in one VPS or docker container?</p>
+
+<p>ndg means KISS automatic node deployment for VPS (minimalist PAAS), node project bootstrapper in few lines of bash.</p>
+
+<blockquote>
+<p>Zero dependencies: only bash git and ssh!</p>
+</blockquote>
+
+<h2>
+<a id="usage" class="anchor" href="#usage" aria-hidden="true"><span class="octicon octicon-link"></span></a>Usage</h2>
+
+<p>On the liveserver download &amp; configure ndg on liveserver (once):</p>
+
+<pre><code>$ ssh foo@liveserver.com 
+$ ndg config repositories_dir /srv/noderepos    # location of gitrepos
+$ ndg config apps_dir /srv/nodeapps             # where apps run
+</code></pre>
+
+<p>Locally: Yay! now we can bootstrap node-projects remotly:</p>
+
+<pre><code>$ alias ndg='ssh foo@liveserver.com ndg "$@"'
+$ ndg init fooproject 8111 http://foo.liveserver.com
+
+ndg&gt; Initialized empty Git repository in /srv/noderepos/fooproject
+ndg&gt; --- initing repo
+ndg&gt; --- initing .ndg/hooks/*
+ndg&gt; --- committing README.md, LICENSE and ndg hooks
+ndg&gt; [master (root-commit) 1870848] 1st commit
+ndg&gt; 5 files changed, 10 insertions(+)
+ndg&gt; create mode 100644 .gitignore
+ndg&gt; create mode 100755 .ndg/hooks/build
+ndg&gt; create mode 100755 .ndg/hooks/patch
+ndg&gt; create mode 100755 .ndg/hooks/test
+ndg&gt; create mode 100755 .ndg/hooks/start
+ndg&gt; create mode 100755 .ndg/hooks/stop
+ndg&gt; create mode 100644 LICENSE
+ndg&gt; create mode 100644 README.md
+ndg&gt; create mode 100644 package.json
+ndg&gt; --- pushing to origin
+ndg&gt; get    repo:    git clone foo@liveserver.com:/srv/noderepos/fooproject    
+ndg&gt; logview app:    ssh foo@liveserver.com tailf /srv/noderepos/fooproject/nohup.out
+ndg&gt; deploy  app:    git push origin master
+</code></pre>
+
+<h2>
+<a id="code-locally-deploy-to-remote" class="anchor" href="#code-locally-deploy-to-remote" aria-hidden="true"><span class="octicon octicon-link"></span></a>Code locally, deploy to remote</h2>
+
+<pre><code>$ git clone foo@liveserver.com:/srv/noderepos/fooproject
+
+...(code and commit)..
+
+$ git push origin master
+
+...(yay! app is deployed, npm packages installed/updated, infinite application-loop started..)
+</code></pre>
+
+<p>Your repo will contain a '.ndg'-folder with extra deploymenthooks..for free!</p>
+
+<h2>
+<a id="manage-remotely" class="anchor" href="#manage-remotely" aria-hidden="true"><span class="octicon octicon-link"></span></a>Manage remotely</h2>
+
+<pre><code>$ alias ndg='ssh foo@liveserver.com ndg "$@"'
+$ ndg status fooproject
+app fooproject is running
+$ ndg app list
+ndg&gt; fooproject
+$ ndg app stop fooproject
+$ ndg app start fooproject
+$ ndg app restart fooproject
+$ ndg app delete fooproject
+</code></pre>
+
+<h2>
+<a id="scalable-instances" class="anchor" href="#scalable-instances" aria-hidden="true"><span class="octicon octicon-link"></span></a>Scalable instances</h2>
+
+<p>Experimentl: Scaling can be achieved using symlinks </p>
+
+<pre><code>$ ndg app symlink fooproject fooproject-2 2345 http://fooproject-2.liveserver.com
+$ ndg app start fooproject-2
+</code></pre>
+
+<h2>
+<a id="remote-logging" class="anchor" href="#remote-logging" aria-hidden="true"><span class="octicon octicon-link"></span></a>Remote logging:</h2>
+
+<pre><code>$ ndg app logtail fooproject 
+trigger .ndg/hooks/stop
+Tue Apr 28 08:53:55 CEST 2015 stopping /srv/nodeapps/fooproject (pid 27474)
+trigger .ndg/hooks/build
+trigger .ndg/hooks/patch
+trigger .ndg/hooks/test
+Tue Apr 28 08:53:58 CEST 2015 starting /srv/nodeapps/fooproject at port 8111
+</code></pre>
+
+<h2>
+<a id="app-start-during-server-reboot" class="anchor" href="#app-start-during-server-reboot" aria-hidden="true"><span class="octicon octicon-link"></span></a>App start during server reboot</h2>
+
+<p>Just put this somewhere in an /etc/init.d/ script:</p>
+
+<pre><code>ndg app status projectfoo || ndg app start projectfoo
+</code></pre>
+
+<p>All apps at once:</p>
+
+<pre><code>for app in /srv/nodeapps/*; do 
+  appname=$(basename $app)
+  ndg app status $appname || ndg app start $appname
+done
+</code></pre>
+
+<h2>
+<a id="optional-ndg-proxy" class="anchor" href="#optional-ndg-proxy" aria-hidden="true"><span class="octicon octicon-link"></span></a>Optional: ndg-proxy</h2>
+
+<p>ndg-proxy is a websocket/http proxy node application which allows running multiple node applications thru one port.</p>
+
+<pre><code>ndg app #1 @ port 1234 &lt;----&gt;
+ndg app #2 @ port 1235 &lt;----&gt;  ndg-proxy @ port 80  &lt;----- traffic
+ndg app #3 @ port 1236 &lt;----&gt;
+</code></pre>
+
+<p>ndg-proxy reads the .ndg/config files from projects during start..easy peasy.</p>
+
+<blockquote>
+<p>ndg + ndg-proxy: run containers in 1 container :)</p>
+</blockquote>
+
+<ul>
+<li>more info on ndg-proxy: <a href="https://github.com/coderofsalvation/ndg-proxy">https://github.com/coderofsalvation/ndg-proxy</a>
+</li>
+</ul>
+        </section>
+
+        <aside id="sidebar">
+          <a href="https://github.com/coderofsalvation/nodejs-deploy-githook.bash/zipball/master" class="button">
+            <small>Download</small>
+            .zip file
+          </a>
+          <a href="https://github.com/coderofsalvation/nodejs-deploy-githook.bash/tarball/master" class="button">
+            <small>Download</small>
+            .tar.gz file
+          </a>
+
+          <p class="repo-owner"><a href="https://github.com/coderofsalvation/nodejs-deploy-githook.bash"></a> is maintained by <a href="https://github.com/coderofsalvation">coderofsalvation</a>.</p>
+
+          <p>This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the Architect theme by <a href="https://twitter.com/jasonlong">Jason Long</a>.</p>
+        </aside>
+      </div>
+    </div>
+
+  
+  </body>
+</html>
