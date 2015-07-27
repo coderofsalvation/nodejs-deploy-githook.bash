@@ -56,7 +56,7 @@ Your repo will contain a '.ndg'-folder with extra deploymenthooks..for free!
 
 ## Manage remotely
 
-    $ alias ndg='ssh foo@liveserver.com ndg "$@"'
+    $ alias ndg='ssh -t foo@liveserver.com ndg "$@"'
     $ ndg status fooproject
     app fooproject is running
     $ ndg app list
@@ -109,3 +109,7 @@ ndg-proxy reads the .ndg/config files from projects during start..easy peasy.
 > ndg + ndg-proxy: run containers in 1 container :)
 
 * more info on ndg-proxy: [https://github.com/coderofsalvation/ndg-proxy](https://github.com/coderofsalvation/ndg-proxy)
+
+## dont use githook for deployment!
+
+*sigh*
