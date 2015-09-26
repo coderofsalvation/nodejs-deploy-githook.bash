@@ -21,8 +21,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 self_path="$(dirname "$( readlink -f "$0" )" )"
-repositories_dir="" 
-apps_dir="" 
+repositories_dir="/srv/repos"
+apps_dir="/srv/apps"
 port=""
 
 dir_ok(){ [[ -d "$1" || -L "$1" ]] && return 0 || return 1; }
@@ -153,6 +153,11 @@ usage(){
 # init <id> <port> <http://domain.com>
 init(){
   [[ ! -n $2 ]] && { usage; exit; }
+  [[ ! -n $NDG_HOSTNAME ]] && [[ -f $self_path/.hostname ]] && NDG_HOSTNAME="$(< $self_path/.hostname)" 
+  [[ ! -n $NDG_HOSTNAME ]] && {
+    NDG_HOSTNAME=$(cat /etc/hostname)
+    echo -e "warning: please set hostname in file $self_path/.hostname or as env-var \$NDG_HOSTNAME\n";
+  }
   set -u; name="$1"; port="$2"; domainurl="$3"; hookfile=$name/hooks/post-receive 
   {
     cd "$repositories_dir" && git init --bare "$name"
@@ -161,11 +166,6 @@ init(){
     chmod 755 "$hookfile"
     init_repo "$apps_dir/$name"
     commit_repo
-    [[ ! -n $NDG_HOSTNAME && -f $self_path/.hostname ]] && NDG_HOSTNAME="$(< $self_path/.hostname)" 
-    [[ ! -n $NDG_HOSTNAME ]] && {
-      NDG_HOSTNAME=$(cat /etc/hostname)
-      echo -e "warning: please set hostname in file $self_path/.hostname or as env-var \$NDG_HOSTNAME\n";
-    }
     echo -e "clone  repo:    git clone $(whoami)@$NDG_HOSTNAME:$repositories_dir/$name"
     echo -e "logview app:    ssh $(whoami)@$NDG_HOSTNAME tailf $apps_dir/$name/nohup.out"
     echo -e "deploy  app:    git push origin master"
@@ -254,7 +254,7 @@ app(){
 		cat config
                 ;;
     logtail)    echo "tailing $apps_dir/$2/nohup.out"
-		tailf $apps_dir/$2/nohup.out
+                tailf $apps_dir/$2/nohup.out
                 ;;
     *)          echo "unknown action '$1'"
                 ;;
