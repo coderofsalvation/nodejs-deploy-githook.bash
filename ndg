@@ -43,7 +43,7 @@ package_json='{
   "license": "GPL3"
 }'
 
-githook_post_receive='
+githook_post_receive='#!/bin/bash
 # this is the githook template, please modify at will
 while read oldrev newrev ref
 do
@@ -81,7 +81,8 @@ do
 
 done
 '
-app_config='# this config will be used by ndg and the nodejs application (as env variables)
+app_config='#!/bin/bash 
+# this config will be used by ndg and the nodejs application (as env variables)
 PROTOCOL=http://
 
 if [[ -n $LIVE ]]; then 
@@ -95,25 +96,26 @@ else
 fi
 '
 
-hook_start='
+hook_start='#!/bin/bash
   trap "echo application was killed | tee -a nohup.out ; exit 1" 1 2 3 4 5 SIGINT SIGTERM
-  echo $$ > .pid
+  ppid=$$
 
   . .ndg/config                                       # read config (port/iface etc)
 
   forever(){
     echo "$(date) starting $(pwd) at port $PORT" | tee -a nohup.out
     PORT=$PORT HOST=$HOST node server.js
+    echo "$ppid $$" > .pid
     sleep 2s && forever
   }
 
   forever
 '
 
-hook_stop='
+hook_stop='#!/bin/bash
 [[ ! -f .pid ]] && { echo "no pidfile found, nothing to stop" | tee -a nohup.out; exit 0; }
 pid=$(<.pid);echo "$(date) stopping $(pwd) (pid $pid)" | tee -a >> nohup.out
-[[ ${#pid} > 0 ]] &&  kill -9 $pid $(pgrep -P $(cat .pid))
+[[ ${#pid} > 0 ]] && kill -9 ${pid} $(pgrep -P $pid)
 exit 0 # else git deployment will halt
 '
 
