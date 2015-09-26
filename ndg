@@ -98,14 +98,13 @@ fi
 
 hook_start='#!/bin/bash
   trap "echo application was killed | tee -a nohup.out ; exit 1" 1 2 3 4 5 SIGINT SIGTERM
-  ppid=$$
+  echo $$ > .pid 
 
   . .ndg/config                                       # read config (port/iface etc)
 
   forever(){
     echo "$(date) starting $(pwd) at port $PORT" | tee -a nohup.out
     PORT=$PORT HOST=$HOST node server.js
-    echo "$ppid $$" > .pid
     sleep 2s && forever
   }
 
@@ -174,6 +173,7 @@ init(){
     echo -e "logview app:    ssh $(whoami)@$NDG_HOSTNAME ${TAIL} $apps_dir/$name/nohup.out"
     echo -e "deploy  app:    git push origin master"
   } | console
+  trigger_hook init
 }
 
 init_repo(){
@@ -210,6 +210,10 @@ init_ndg_hooks(){
   chmod 755 $1/.ndg/hooks/* 
 }
 
+trigger_hook(){
+  [[ -f $repositories_dir/.ndg/hooks/$1 ]] && $repositories_dir/.ndg/hooks/$1 &
+}
+
 # app <list|start|stop|symlink|restart|status|logtail|delete> <appid>
 app(){
   [[ ! -n "$2" ]] && [[ ! "$1" == "list" ]] && { usage; exit 0; }
@@ -219,21 +223,25 @@ app(){
   cd $apps_dir/$2
   case "$1" in
     list)       ls 
+                trigger_hook list 
                 ;;
 
     status)     kill -0 "$pid"; ok=$? 
 		[[ $ok == 1 ]] && not="not" || not=""
                 echo "app $2 is $not running (pid=$pid)"; 
+                trigger_hook status
                 ;;
     stop)       .ndg/hooks/stop
+                trigger_hook stop
                 ;;
     start)      kill -0 "$pid" &>/dev/null && { echo "app $2 is already running (pid=$pid)"; exit 0; }
 		echo starting
                 nohup /bin/bash -c 'exec .ndg/hooks/start 2>&1' 1>/dev/null 2>/dev/null &
-                #nohup .ndg/hooks/start 1>> nohup.out 2>&1 &
+                trigger_hook start
 		;;
     restart)    .ndg/hooks/stop
                 nohup .ndg/hooks/start 1>> nohup.out 2>&1 &
+                trigger_hook restart
                 ;;
     delete)     .ndg/hooks/stop
 		echo "about to delete app in 5 seconds..press ctrl-c to abort"
@@ -241,6 +249,7 @@ app(){
 		sleep 5s
 		rm -rf $apps_dir/$2
                 [[ -d $repositories_dir/$2 ]] && rm -rf $repositories_dir/$2
+                trigger_hook delete
                 ;;
     symlink)    [[ ! -n $5 ]] && { echo "usage: ndg app symlink <appname> <appname-2> <port> <http://domainurl>"; exit 0; }
 		mkdir $apps_dir/$3
@@ -257,9 +266,11 @@ app(){
                 sed -i 's|URL=.*|URL='$5'|g' config
 		echo "done, here's the config: "
 		cat config
+                trigger_hook symlink
                 ;;
     logtail)    echo "tailing $apps_dir/$2/nohup.out"
                 ${TAIL} $apps_dir/$2/nohup.out
+                trigger_hook logtail
                 ;;
     *)          echo "unknown action '$1'"
                 ;;
