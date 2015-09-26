@@ -166,7 +166,7 @@ init(){
     chmod 755 "$hookfile"
     init_repo "$apps_dir/$name"
     commit_repo
-    echo -e "clone  repo:    git clone $(whoami)@$NDG_HOSTNAME:$repositories_dir/$name"
+    echo -e "clone  repo:    git clone ssh://$(whoami)@$NDG_HOSTNAME:$repositories_dir/$name"
     echo -e "logview app:    ssh $(whoami)@$NDG_HOSTNAME tailf $apps_dir/$name/nohup.out"
     echo -e "deploy  app:    git push origin master"
   } | console
