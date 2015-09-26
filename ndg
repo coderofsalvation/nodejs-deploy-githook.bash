@@ -24,6 +24,8 @@ self_path="$(dirname "$( readlink -f "$0" )" )"
 repositories_dir="/srv/repos"
 apps_dir="/srv/apps"
 port=""
+which TAILf &>/dev/null && TAIL=tailf 
+[[ ! -n $TAIL ]] && TAIL="tail -f"
 
 dir_ok(){ [[ -d "$1" || -L "$1" ]] && return 0 || return 1; }
 
@@ -111,7 +113,7 @@ hook_start='
 hook_stop='
 [[ ! -f .pid ]] && { echo "no pidfile found, nothing to stop" | tee -a nohup.out; exit 0; }
 pid=$(<.pid);echo "$(date) stopping $(pwd) (pid $pid)" | tee -a >> nohup.out
-[[ ${#pid} > 0 ]] &&  kill $(pstree $pid -p -a -l | cut -d, -f2 | cut -d" " -f1) 
+[[ ${#pid} > 0 ]] &&  kill -9 $pid $(pgrep -P $(cat .pid))
 exit 0 # else git deployment will halt
 '
 
@@ -167,7 +169,7 @@ init(){
     init_repo "$apps_dir/$name"
     commit_repo
     echo -e "clone  repo:    git clone ssh://$(whoami)@$NDG_HOSTNAME:$repositories_dir/$name"
-    echo -e "logview app:    ssh $(whoami)@$NDG_HOSTNAME tailf $apps_dir/$name/nohup.out"
+    echo -e "logview app:    ssh $(whoami)@$NDG_HOSTNAME ${TAIL} $apps_dir/$name/nohup.out"
     echo -e "deploy  app:    git push origin master"
   } | console
 }
@@ -225,7 +227,8 @@ app(){
                 ;;
     start)      kill -0 "$pid" &>/dev/null && { echo "app $2 is already running (pid=$pid)"; exit 0; }
 		echo starting
-                nohup .ndg/hooks/start 1>> nohup.out 2>&1 &
+                nohup /bin/bash -c 'exec .ndg/hooks/start 2>&1' 1>/dev/null 2>/dev/null &
+                #nohup .ndg/hooks/start 1>> nohup.out 2>&1 &
 		;;
     restart)    .ndg/hooks/stop
                 nohup .ndg/hooks/start 1>> nohup.out 2>&1 &
@@ -254,7 +257,7 @@ app(){
 		cat config
                 ;;
     logtail)    echo "tailing $apps_dir/$2/nohup.out"
-                tailf $apps_dir/$2/nohup.out
+                ${TAIL} $apps_dir/$2/nohup.out
                 ;;
     *)          echo "unknown action '$1'"
                 ;;
