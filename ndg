@@ -153,7 +153,7 @@ usage(){
   grep -B1 "(){" $0 | grep "^#" | while read line; do echo "usage: ndg ${line//# /}"; done; exit; 
 }
 
-# init <id> <port> <http://domain.com>
+# init <id> <port> <domain.com> [git repourl]
 init(){
   [[ ! -n $2 ]] && { usage; exit; }
   [[ ! -n $NDG_HOSTNAME ]] && [[ -f $self_path/.hostname ]] && NDG_HOSTNAME="$(< $self_path/.hostname)" 
@@ -163,11 +163,17 @@ init(){
   }
   set -u; name="$1"; port="$2"; domainurl="$3"; hookfile=$name/hooks/post-receive 
   {
-    cd "$repositories_dir" && git init --bare "$name"
+    cd "$repositories_dir" 
+    if [[ ! -n $4 ]]; then
+      git init --bare "$name"
+    else
+      git clone --bare "$4" "$name"
+      sed -i 's/:.*@//g' $repositories_dir/$name/config # remove pw from github url if any (bruteforce, because origin isnt important)
+    fi
     print_header > "$hookfile"
     echo "$githook_post_receive" >> "$hookfile"
     chmod 755 "$hookfile"
-    init_repo "$apps_dir/$name"
+    init_repo "$apps_dir/$name" "$4"
     commit_repo
     echo -e "clone  repo:    git clone ssh://$(whoami)@$NDG_HOSTNAME:$repositories_dir/$name"
     echo -e "logview app:    ssh $(whoami)@$NDG_HOSTNAME ${TAIL} $apps_dir/$name/nohup.out"
@@ -181,12 +187,15 @@ init_repo(){
   set -u; name=$(basename $1); line=""; for((i=0;i<${#name};i++)); do line="$line""="; done
   git clone "$repositories_dir/$name" "$apps_dir/$name"
   cd "$apps_dir/$name" 
-  echo -e "$name\n$line\n\ndescription here" > $1/README.md
-  touch $1/LICENSE
-  init_ndg_hooks "$1"
-  printf "$package_json" "$name" > package.json
-  echo "var port = process.env.PORT;" > server.js
-  echo "node_modules" > .gitignore
+  if [[ ! -n $2 ]]; then 
+    echo -e "$name\n$line\n\ndescription here" > $1/README.md
+    touch $1/LICENSE
+    printf "$package_json" "$name" > package.json
+    printf "$package_json" "$name" > package.json
+    echo "var port = process.env.PORT;" > server.js
+    echo "node_modules" > .gitignore
+  fi
+  [[ ! -d .ndg ]] && init_ndg_hooks "$1"
 }
 
 
