@@ -161,19 +161,20 @@ init(){
     NDG_HOSTNAME=$(cat /etc/hostname)
     echo -e "warning: please set hostname in file $self_path/.hostname or as env-var \$NDG_HOSTNAME\n";
   }
+  repo="$4"
   set -u; name="$1"; port="$2"; domainurl="$3"; hookfile=$name/hooks/post-receive 
   {
     cd "$repositories_dir" 
-    if [[ ! -n $4 ]]; then
+    if [[ ${#repo} == 0 ]]; then
       git init --bare "$name"
     else
-      git clone --bare "$4" "$name"
+      git clone --bare "$repo" "$name"
       sed -i 's/:.*@//g' $repositories_dir/$name/config # remove pw from github url if any (bruteforce, because origin isnt important)
     fi
     print_header > "$hookfile"
     echo "$githook_post_receive" >> "$hookfile"
     chmod 755 "$hookfile"
-    init_repo "$apps_dir/$name" "$4"
+    init_repo "$apps_dir/$name" "$repo"
     commit_repo
     echo -e "clone  repo:    git clone ssh://$(whoami)@$NDG_HOSTNAME:$repositories_dir/$name"
     echo -e "logview app:    ssh $(whoami)@$NDG_HOSTNAME ${TAIL} $apps_dir/$name/nohup.out"
