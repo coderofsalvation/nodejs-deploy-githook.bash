@@ -21,8 +21,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 self_path="$(dirname "$( readlink -f "$0" )" )"
-repositories_dir="/srv/repos"
-apps_dir="/srv/apps"
+repositories_dir=""
+apps_dir=""
 port=""
 which TAILf &>/dev/null && TAIL=tailf 
 [[ ! -n $TAIL ]] && TAIL="tail -f"
@@ -65,7 +65,7 @@ do
     
     trigger_hook .ndg/hooks/build
 
-    npm install 
+    npm install --no-optional --production
 
     trigger_hook .ndg/hooks/patch
 
