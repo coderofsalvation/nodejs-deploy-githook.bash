@@ -106,7 +106,8 @@ ndg-proxy is a websocket/http proxy node application which allows running multip
 
 ndg-proxy reads the .ndg/config files from projects during start..easy peasy.
 
-> ndg + ndg-proxy: run containers in 1 container :)
+> NOTE #1: ndg + ndg-proxy allows you to run containers in 1 container..run a docker inside your docker :)
+> NOTE #2: hipache is also a very cool nodejs proxy
 
 * more info on ndg-proxy: [https://github.com/coderofsalvation/ndg-proxy](https://github.com/coderofsalvation/ndg-proxy)
 
